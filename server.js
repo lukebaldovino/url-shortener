@@ -1,4 +1,5 @@
 const express = require('express');
+const {body, validationResult} = require('express-validator');
 const fs = require('fs');
 const path = require('path');
 
@@ -30,28 +31,37 @@ function generateUniqueShortCode() {
   return shortCode;
 }
 
-function loadData() {
+async function loadData() {
   const filePath = path.join(__dirname, 'urls.json');
   if (!fs.existsSync(filePath)) {
     fs.writeFileSync(filePath, JSON.stringify([]));
   }
-  const data = fs.readFileSync(filePath, 'utf8');
+  const data = await fs.promises.readFile(filePath, 'utf8');
   return JSON.parse(data); 
 }
 
-function saveData(shortCode, url) {
-  const loadedData = loadData();
+async function saveData(shortCode, url) {
+  const loadedData = await loadData();
   loadedData.push({ shortCode, url });
   const filePath = path.join(__dirname, 'urls.json');
-  fs.writeFileSync(filePath, JSON.stringify(loadedData, null, 2));
+  await fs.promises.writeFile(filePath, JSON.stringify(loadedData, null, 2));
 }
 
-app.post('/shorten', (req, res) => {
-    const{ url } = req.body;
-    const data = loadData();
-    const shortCode = generateUniqueShortCode();
-    saveData(shortCode, url);
-    res.json({ shortCode });
+app.post('/shorten', [
+  body('url').trim().isURL({
+    protocols: ['http', 'https'],
+    require_protocol: true,
+    require_valid_protocol: true
+  }).withMessage('Please provide a valid URL')
+], (req, res) => {
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    return res.status(400).json({ errors: errors.array() });
+  }
+  const{ url } = req.body;
+  const shortCode = generateUniqueShortCode();
+  saveData(shortCode, url);
+  res.json({ shortCode });
 });
 
 app.get('/:shortCode', (req, res) => {
