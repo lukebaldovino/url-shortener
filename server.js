@@ -22,9 +22,9 @@ function generateShortCode() {
   }
   return shortCode;
 }
-function generateUniqueShortCode() {
+async function generateUniqueShortCode() {
   let shortCode;
-  const data = loadData();
+  const data = await loadData();
   do {
     shortCode = generateShortCode();
   } while (data.some(item => item.shortCode === shortCode));
@@ -35,9 +35,14 @@ async function loadData() {
   const filePath = path.join(__dirname, 'urls.json');
   if (!fs.existsSync(filePath)) {
     fs.writeFileSync(filePath, JSON.stringify([]));
+    return [];
   }
-  const data = await fs.promises.readFile(filePath, 'utf8');
-  return JSON.parse(data); 
+  try {
+    const data = await fs.promises.readFile(filePath, 'utf8');
+    return data.trim() ? JSON.parse(data) : [];
+  } catch (error) {
+    return [];
+  }
 }
 
 async function saveData(shortCode, url) {
@@ -53,20 +58,21 @@ app.post('/shorten', [
     require_protocol: true,
     require_valid_protocol: true
   }).withMessage('Please provide a valid URL')
-], (req, res) => {
+], async (req, res) => {
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     return res.status(400).json({ errors: errors.array() });
   }
   const{ url } = req.body;
-  const shortCode = generateUniqueShortCode();
-  saveData(shortCode, url);
+  const shortCode = await generateUniqueShortCode();
+  await saveData(shortCode, url);
   res.json({ shortCode });
 });
 
-app.get('/:shortCode', (req, res) => {
+
+app.get('/:shortCode', async (req, res) => {
   const { shortCode } = req.params;
-  const data = loadData();
+  const data = await loadData();
   const url = data.find(item => item.shortCode === shortCode);
   if (url) {
     res.redirect(url.url);
@@ -74,3 +80,4 @@ app.get('/:shortCode', (req, res) => {
     res.status(404).send('Short code not found');
   }
 });
+
