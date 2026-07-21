@@ -41,16 +41,39 @@ async function loadData() {
     const data = await fs.promises.readFile(filePath, 'utf8');
     return data.trim() ? JSON.parse(data) : [];
   } catch (error) {
-    return [];
+    throw new Error('Failed to read urls.json');
   }
+}
+
+async function saveAllData(data) {
+  const filePath = path.join(__dirname, 'urls.json');
+  await fs.promises.writeFile(filePath, JSON.stringify(data, null, 2));
 }
 
 async function saveData(shortCode, url) {
   const loadedData = await loadData();
-  loadedData.push({ shortCode, url });
-  const filePath = path.join(__dirname, 'urls.json');
-  await fs.promises.writeFile(filePath, JSON.stringify(loadedData, null, 2));
+  const urlEntry = {
+    shortCode: shortCode,
+    url: url,
+    clicks: 0,
+    createdAt: new Date().toISOString()
+  }
+  loadedData.push(urlEntry);
+  await saveAllData(loadedData);
 }
+
+async function updateClickData(shortCode) {
+  const data = await loadData();
+  const urlEntry = data.find(item => item.shortCode === shortCode);
+  if (urlEntry) {
+    urlEntry.clicks += 1;
+    await saveAllData(data);
+    return urlEntry;
+  }
+
+  throw new Error('Short code not found');
+}
+
 
 app.post('/shorten', [
   body('url').trim().isURL({
@@ -59,24 +82,27 @@ app.post('/shorten', [
     require_valid_protocol: true
   }).withMessage('Please provide a valid URL')
 ], async (req, res) => {
-  const errors = validationResult(req);
-  if (!errors.isEmpty()) {
-    return res.status(400).json({ errors: errors.array() });
+  try {
+    const errors = validationResult(req);
+    if (!errors.isEmpty()) {
+      return res.status(400).json({ errors: errors.array() });
+    }
+    const { url } = req.body;
+    const shortCode = await generateUniqueShortCode();
+    await saveData(shortCode, url);
+    res.json({ shortCode });
+  } catch (error) {
+    res.status(500).send('Failed to shorten URL');
   }
-  const{ url } = req.body;
-  const shortCode = await generateUniqueShortCode();
-  await saveData(shortCode, url);
-  res.json({ shortCode });
 });
 
 
 app.get('/:shortCode', async (req, res) => {
   const { shortCode } = req.params;
-  const data = await loadData();
-  const url = data.find(item => item.shortCode === shortCode);
-  if (url) {
-    res.redirect(url.url);
-  } else {
+  try {
+    const urlEntry = await updateClickData(shortCode);
+    res.redirect(urlEntry.url);
+  } catch (error) {
     res.status(404).send('Short code not found');
   }
 });
