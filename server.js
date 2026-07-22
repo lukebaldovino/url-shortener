@@ -13,13 +13,29 @@ app.listen(3000, () => {
 });
 
 function generateShortCode() {
-  const characters = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-  const length = 6;
-  let shortCode = '';
-  for (let i = 0; i < length; i++) {
-    const randomIndex = Math.floor(Math.random() * characters.length);
-    shortCode += characters[randomIndex];
-  }
+  const words =  ["skibidi",
+  "sigma",
+  "rizz",
+  "gyatt",
+  "ohio",
+  "goofy",
+  "sus",
+  "mog",
+  "fanum",
+  "tax",
+  "npc",
+  "grimace",
+  "delulu",
+  "aura",
+  "cooked",
+  "bussin",
+  "gooner",
+  "brainrot",
+  "yeet",
+  "based"];
+ const firstWord = words[Math.floor(Math.random() * words.length)];
+  const secondWord = words[Math.floor(Math.random() * words.length)];
+  const shortCode = `${firstWord}-${secondWord}-${Math.floor(Math.random() * 10000)}`;
   return shortCode;
 }
 async function generateUniqueShortCode() {
