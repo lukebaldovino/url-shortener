@@ -38,6 +38,13 @@ function generateShortCode() {
   const shortCode = `${firstWord}-${secondWord}-${Math.floor(Math.random() * 10000)}`;
   return shortCode;
 }
+
+function isExpired(link) {
+  const now = new Date();
+  const expirationDate = new Date(link.ExpiresAt);
+  return now > expirationDate;
+}
+
 async function generateUniqueShortCode() {
   let shortCode;
   const data = await loadData();
@@ -72,7 +79,8 @@ async function saveData(shortCode, url) {
     shortCode: shortCode,
     url: url,
     clicks: 0,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    ExpiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // Expires in 30 days
   }
   loadedData.push(urlEntry);
   await saveAllData(loadedData);
@@ -117,6 +125,9 @@ app.get('/:shortCode', async (req, res) => {
   const { shortCode } = req.params;
   try {
     const urlEntry = await updateClickData(shortCode);
+    if (isExpired(urlEntry)) {
+      return res.status(410).send('This short link has expired');
+    }
     res.redirect(urlEntry.url);
   } catch (error) {
     res.status(404).send('Short code not found');
