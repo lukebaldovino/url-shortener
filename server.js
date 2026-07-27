@@ -6,11 +6,26 @@ const path = require('path');
 
 const app = express();
 
+function removeExpiredLinksPeriodically() {
+  setInterval(async () => {
+    try {
+      await removeExpiredLinks();
+      console.log('Expired links removed');
+    } catch (error) {
+      console.error('Error removing expired links:', error);
+    }
+  }, 60*60*1000); // Run every hour
+}
+
 app.use(express.json());
 
 app.listen(3000, () => {
   console.log('Server is running on port 3000');
 });
+
+removeExpiredLinks();
+
+removeExpiredLinksPeriodically();
 
 function generateShortCode() {
   const words =  ["skibidi",
@@ -42,7 +57,7 @@ function generateShortCode() {
 function isExpired(link) {
   const now = new Date();
   const expirationDate = new Date(link.ExpiresAt);
-  return now > expirationDate;
+  return now >= expirationDate;
 }
 
 async function generateUniqueShortCode() {
@@ -98,6 +113,12 @@ async function updateClickData(shortCode) {
   throw new Error('Short code not found');
 }
 
+async function removeExpiredLinks() {
+  const data = await loadData();
+  const now = new Date();
+  const filteredData = data.filter(item => new Date(item.ExpiresAt) > now);
+  await saveAllData(filteredData);
+}
 
 app.post('/shorten', [
   body('url').trim().isURL({

@@ -1,0 +1,22 @@
+POST http://localhost:3000/shorten
+Content-Type: application/json
+
+{
+  "url": "https://www.tiktok.com"
+}
+
+###
+GET http://localhost:3000/gooner-based-531    
+
+###
+POST http://localhost:3000/shorten
+Content-Type: application/json
+
+{
+  "url": "invalid-url"
+}
+
+###
+GET http://localhost:3000/invalidCode
+###
+GET http://localhost:3000/sigma-sus-1646
