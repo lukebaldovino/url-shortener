@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <meta name="theme-color" content="#0b0f14" />
+  <title>Skibidi Shortener</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <main class="shell">
+    <section class="hero card">
+      <div class="badge-row">
+        <span class="badge">Meme-powered</span>
+        <span class="badge badge-muted">30-day expiry</span>
+      </div>
+      <h1>Skibidi Shortener</h1>
+      <p class="lede">
+        Paste a long URL. Get a brainrot-friendly short link. No login. No nonsense.
+      </p>
+
+      <form id="shorten-form" class="compose" autocomplete="off">
+        <label class="field">
+          <span>Destination URL</span>
+          <input
+            id="url-input"
+            name="url"
+            type="url"
+            inputmode="url"
+            placeholder="https://example.com/your-very-long-link"
+            required
+          />
+        </label>
+
+        <div class="actions">
+          <button class="primary" type="submit">Shorten it</button>
+          <button class="secondary" type="button" id="clear-history">Clear history</button>
+        </div>
+      </form>
+
+      <div class="status" id="status" aria-live="polite">
+        Ready when you are. Drop a link and let the algorithm cook.
+      </div>
+    </section>
+
+    <section class="results card">
+      <div class="section-head">
+        <h2>Latest link</h2>
+        <span class="section-tag">Copy-ready</span>
+      </div>
+
+      <div id="result-empty" class="empty-state">
+        Your short link will appear here after the first save.
+      </div>
+
+      <article id="result-card" class="result-card hidden">
+        <div>
+          <p class="result-label">Short link</p>
+          <a id="short-link" href="#" target="_blank" rel="noreferrer"></a>
+        </div>
+        <div class="result-meta">
+          <span id="short-code"></span>
+          <button class="copy" type="button" id="copy-link">Copy</button>
+        </div>
+      </article>
+    </section>
+
+    <section class="history card">
+      <div class="section-head">
+        <h2>Recent chaos</h2>
+        <span class="section-tag">Saved locally</span>
+      </div>
+
+      <div id="history-list" class="history-list">
+        <p class="empty-state">No links yet. Your clipboard is still a virgin.</p>
+      </div>
+    </section>
+  </main>
+
+  <script src="/app.js"></script>
+</body>
+</html>
