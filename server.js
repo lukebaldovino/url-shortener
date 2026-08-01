@@ -1,7 +1,9 @@
+import {PrismaClient} from '@prisma/client';
+
+const prisma = new PrismaClient();
 const express = require('express');
 const {body, validationResult} = require('express-validator');
-const fs = require('fs');
-const path = require('path');
+
 
 
 const app = express();
@@ -19,7 +21,7 @@ function removeExpiredLinksPeriodically() {
 }
 
 app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
+
 
 app.listen(3000, () => {
   console.log('Server is running on port 3000');
@@ -56,21 +58,18 @@ function generateShortCode() {
   return shortCode;
 }
 
-function isExpired(link) {
-  const now = new Date();
-  const expirationDate = new Date(link.ExpiresAt);
-  return now >= expirationDate;
-}
-
 async function generateUniqueShortCode() {
   let shortCode;
-  const data = await loadData();
+  let exists;
   do {
     shortCode = generateShortCode();
-  } while (data.some(item => item.shortCode === shortCode));
+    exists = await prisma.url.findUnique({
+      where: { shortCode }
+    });
+  } while (exists);
   return shortCode;
 }
-
+/*
 async function loadData() {
   const filePath = path.join(__dirname, 'urls.json');
   if (!fs.existsSync(filePath)) {
@@ -101,26 +100,25 @@ async function saveData(shortCode, url) {
   }
   loadedData.push(urlEntry);
   await saveAllData(loadedData);
-}
+}*/
 
 async function updateClickData(shortCode) {
-  const data = await loadData();
-  const urlEntry = data.find(item => item.shortCode === shortCode);
-  if (urlEntry) {
-    urlEntry.clicks += 1;
-    await saveAllData(data);
-    return urlEntry;
-  }
-
-  throw new Error('Short code not found');
+await prisma.url.update({
+    where: { shortCode },
+    data: { clicks: { increment: 1 } }
+  });
 }
 
 async function removeExpiredLinks() {
-  const data = await loadData();
-  const now = new Date();
-  const filteredData = data.filter(item => new Date(item.ExpiresAt) > now);
-  await saveAllData(filteredData);
-}
+    const deletedLinks = await prisma.url.deleteMany({
+      where: {
+        expiresAt: {
+          lt: new Date()
+        }
+      }
+    });
+    return deletedLinks.count;
+  }
 
 app.post('/shorten', [
   body('url').trim().isURL({
@@ -136,8 +134,14 @@ app.post('/shorten', [
     }
     const { url } = req.body;
     const shortCode = await generateUniqueShortCode();
-    await saveData(shortCode, url);
-    res.json({ shortCode });
+    await prisma.url.create({
+      data: {
+        shortCode,
+        url,
+        createdAt: new Date(),
+        expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000) // Expires in 30 days
+      }
+    })
   } catch (error) {
     res.status(500).send('Failed to shorten URL');
   }
@@ -147,13 +151,20 @@ app.post('/shorten', [
 app.get('/:shortCode', async (req, res) => {
   const { shortCode } = req.params;
   try {
-    const urlEntry = await updateClickData(shortCode);
-    if (isExpired(urlEntry)) {
-      return res.status(410).send('This short link has expired');
+    const urlEntry = await prisma.url.findUnique({
+      where: { shortCode }
+    });
+    if (!urlEntry) {
+      return res.status(404).send('Short code not found');
     }
+    if (urlEntry.expiresAt < new Date()) {
+      await removeExpiredLinks(); // Remove expired links from the database
+      return res.status(410).send('This link has expired');
+    }
+    await updateClickData(shortCode);
     res.redirect(urlEntry.url);
   } catch (error) {
-    res.status(404).send('Short code not found');
+    res.status(500).send('Failed to retrieve URL');
   }
 });
 
