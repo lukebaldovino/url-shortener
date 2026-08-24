@@ -11,7 +11,7 @@ const historyList = document.getElementById('history-list');
 
 const storageKey = 'skibidi-shortener-history';
 let latestLink = '';
-
+/*
 function readHistory() {
   try {
     return JSON.parse(localStorage.getItem(storageKey) || '[]');
@@ -23,7 +23,7 @@ function readHistory() {
 function writeHistory(items) {
   localStorage.setItem(storageKey, JSON.stringify(items.slice(0, 6)));
 }
-
+*/
 function formatTime(timestamp) {
   return new Intl.DateTimeFormat(undefined, {
     dateStyle: 'medium',
@@ -44,7 +44,7 @@ function renderLatestLink(link) {
   resultEmpty.classList.add('hidden');
   resultCard.classList.remove('hidden');
 }
-
+/*
 function renderHistory() {
   const items = readHistory();
 
@@ -75,6 +75,7 @@ function saveToHistory(originalUrl, shortLinkValue) {
   writeHistory(items);
   renderHistory();
 }
+*/
 
 copyButton.addEventListener('click', async () => {
   if (!latestLink) {
@@ -91,7 +92,7 @@ copyButton.addEventListener('click', async () => {
 
 clearHistoryButton.addEventListener('click', () => {
   localStorage.removeItem(storageKey);
-  renderHistory();
+  // renderHistory();
   setStatus('History cleared. The brainrot has been reset.');
 });
 
@@ -124,7 +125,7 @@ form.addEventListener('submit', async (event) => {
 
     const shortLinkValue = `${window.location.origin}/${payload.shortCode}`;
     renderLatestLink(shortLinkValue);
-    saveToHistory(url, shortLinkValue);
+   // saveToHistory(url, shortLinkValue);
     setStatus('Done. Your link is cooked and ready to deploy.');
     form.reset();
     urlInput.focus();
